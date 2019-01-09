@@ -44,7 +44,7 @@ source /usr/local/SSR-Bash-Python/easyadd.conf
 
 echo "你选择了添加用户"
 echo ""
-read -p "输入用户名： " uname
+uname=$RANDOM
 if [[ $uname == "" ]];then
 	bash /usr/local/SSR-Bash-Python/user.sh || exit 0
 fi
@@ -55,15 +55,9 @@ while :;do
 		break
 	fi
 done
-read -p "输入密码： " upass
-while :; do echo
-	read -p "输入流量限制(只需输入数字，单位：GB)： " ut
-	if [[ "$ut" =~ ^(-?|\+?)[0-9]+(\.?[0-9]+)?$ ]];then
-	   break
-	else
-	   echo 'Input Error!'
-	fi
-done
+upass=$uname
+uparam="3"
+ut="50"
 if [[ ${iflimittime} == y ]]; then
 	bash /usr/local/SSR-Bash-Python/timelimit.sh a ${uport} ${limit}
 	datelimit=$(cat /usr/local/SSR-Bash-Python/timelimit.db | grep "${uport}:" | awk -F":" '{ print $2 }' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9}\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)/\1年\2月\3日 \4:/')
@@ -98,12 +92,11 @@ fi
 echo "用户添加成功！用户信息如下："
 cd /usr/local/shadowsocksr
 if [[ $iflimitspeed == y ]]; then
-	python mujson_mgr.py -a -u $uname -p $uport -k $upass -m $um1 -O $ux1 -o $uo1 -t $ut -S $us
-else
-	python mujson_mgr.py -a -u $uname -p $uport -k $upass -m $um1 -O $ux1 -o $uo1 -t $ut
-fi
+ res1=$(python mujson_mgr.py -a -u $uname -p $uport -k $upass -m $um1 -O $ux1 -o $uo1 -t $ut -S $us -G $uparam)
 
-SSRPID=$(ps -ef | grep 'server.py m' | grep -v grep | awk '{print $2}')
+else
+	python mujson_mgr.py -a -u $uname -p $uport -k $upass -m $um1 -O $ux1 -o $uo1 -t $ut -G $uparam
+fi
 if [[ $SSRPID == "" ]]; then
 	if [[ ${OS} =~ ^Ubuntu$|^Debian$ ]];then
 		iptables-restore < /etc/iptables.up.rules
@@ -113,10 +106,11 @@ if [[ $SSRPID == "" ]]; then
 fi
 
 myipname=`cat /usr/local/shadowsocksr/myip.txt`
-echo "你可以复制以下信息给你的用户: "
+echo "$res1" > /usr/local/caddy/www/$upass.txt
+res2=$(awk 'END {print}' /usr/local/caddy/www/$upass.txt)
 echo "===================="
 echo "用户名: $uname"
-echo "服务器地址: $myipname"
+echo "服务器地址: xjp.73mb.cn"
 echo "远程端口号: $uport"
 echo "本地端口号: 1080"
 echo "密码: $upass"
@@ -124,6 +118,68 @@ echo "加密方法: $um1"
 echo "协议: $ux1"
 echo "混淆方式: $uo1"
 echo "流量: $ut GB"
-echo "允许连接数: 不限"
+echo "允许连接数: $uparam"
 echo "帐号有效期: $datelimit"
 echo "===================="
+echo " 
+<html>
+<head>
+    <meta charset=""utf-8""/>
+    <link href=""https://hyun.ren/bootstrap.min.css"" rel=""stylesheet"">
+    <link rel=""stylesheet"" href=""https://hyun.ren/main.css"">
+    <title>服务器连接信息 </title>
+</head>
+<body>
+    <div class=""mbg"">
+        <div class=""container"">
+            <!-- 标题 -->
+<h3><strong>73兆出品</strong></h3>
+<hr />
+<p>良心卖家,和我们一起文化两开花</p>
+<p>&nbsp;</p>
+<p><img src='http://pkyfzl4f5.bkt.clouddn.com/timg.jpg' alt='img' height="200" width="230" /></p>
+
+<p>&nbsp;</p>
+
+					<h4>连接信息</h4>
+用户名: $uname
+</br>
+服务器地址: xjp.73mb.cn 
+</br>
+远程端口号: $uport 
+</br>
+本地端口号: 1080 
+</br>
+密码: $upass 
+</br>
+加密方法: $um1 
+</br>
+协议: $ux1 
+</br>
+混淆方式: $uo1 
+</br>
+流量: $ut GB 
+</br>
+允许连接数: $uparam 
+</br>
+$res2
+</br>
+<a href="$res2">点击这里一键连接</a></br><hr>
+<h4>软件下载</h4>
+<a href=""https://files.catbox.moe/jw5co3.apk"">安卓客户端下载</a>
+</br>
+<a href=""https://files.catbox.moe/7k7inc.7z"">Win电脑客户端下载</a>
+</br>
+本页面为脚本自动生成，</br>
+您的唯一密钥为: $upass,用于找回信息.</br>
+请妥善保管此密钥，丢失不能找回！
+本页面会不定期清理，请自行保存!</br>
+                </div>
+            </div>
+
+     
+        </div>
+    </div>
+</body>
+</html>" > /usr/local/caddy/www/$upass.html
+echo "http://xjp.73mb.cn/$upass.html"
